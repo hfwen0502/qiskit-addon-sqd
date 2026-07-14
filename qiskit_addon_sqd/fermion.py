@@ -39,6 +39,32 @@ from .counts import bit_array_to_arrays, bitstring_matrix_to_integers
 from .processes import broadcast, is_control_process
 from .subsampling import postselect_by_hamming_right_and_left, subsample
 
+# --- Coherix acceleration domain (optional) ---------------------------------
+# Marking ``solve_sci_batch`` as an acceleration candidate lets an external
+# engine package (e.g. SBD) transparently replace the solver via
+# ``qiskit_addon_sqd.enable_engine("<name>")`` or the ``SQD_ENGINE`` env var,
+# with no ``sci_solver=`` threading — because ``diagonalize_fermionic_hamiltonian``
+# resolves its default solver through the module-level ``solve_sci_batch`` name
+# at call time. If coherix is not installed, the decorator and ``materialize``
+# degrade to no-ops and ``solve_sci_batch`` stays an ordinary function.
+try:
+    from coherix import AccelerationDomain as _AccelerationDomain
+
+    _acceleration_domain = _AccelerationDomain("qiskit_addon_sqd", env_prefix="SQD")
+    _acceleration_candidate = _acceleration_domain.acceleration_candidate
+except ImportError:
+    _acceleration_domain = None
+
+    def _acceleration_candidate(func=None, *, name=None):
+        """No-op stand-in when coherix is unavailable (bare or parametrized)."""
+        if callable(func):
+            return func
+
+        def _wrap(f):
+            return f
+
+        return _wrap
+
 config.update("jax_enable_x64", True)  # To deal with large integers
 
 
@@ -595,6 +621,7 @@ def _process_sci_results(
     )
 
 
+@_acceleration_candidate
 def solve_sci_batch(
     ci_strings: list[tuple[np.ndarray, np.ndarray]],
     one_body_tensor: np.ndarray,
@@ -1138,3 +1165,35 @@ def _transition_str_to_bool(string_rep: np.ndarray) -> tuple[np.ndarray, np.ndar
     annihilate = np.logical_or(string_rep == "-", string_rep == "n")
 
     return diag, create, annihilate
+
+
+# --- Finalize the coherix acceleration domain -------------------------------
+# All acceleration candidates (currently just ``solve_sci_batch``) are defined
+# above, so materialize the domain now. After this, ``solve_sci_batch`` is a
+# dispatch wrapper: it runs this module's default implementation unless an
+# engine has been enabled, in which case it runs the engine's override.
+if _acceleration_domain is not None:
+    _acceleration_domain.materialize()
+
+    def enable_engine(engine):
+        """Enable an acceleration engine for the SQD solver.
+
+        After calling this (or setting the ``SQD_ENGINE`` environment variable),
+        :func:`diagonalize_fermionic_hamiltonian` transparently uses the named
+        engine's ``solve_sci_batch`` override — no ``sci_solver=`` needed.
+        Activation is process-global and one-way; call it before the first
+        solve. See the coherix documentation for engine authoring.
+
+        Args:
+            engine: The engine name (str) or an ``AccelerationEngine`` object.
+        """
+        _acceleration_domain.enable_engine(engine)
+
+else:  # coherix not installed
+
+    def enable_engine(engine):  # noqa: D401
+        """Raise: acceleration engines require coherix to be installed."""
+        raise RuntimeError(
+            "Cannot enable an acceleration engine: coherix is not installed. "
+            "Install it to use accelerated SQD solver engines."
+        )

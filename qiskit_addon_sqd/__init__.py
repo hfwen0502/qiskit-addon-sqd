@@ -14,3 +14,16 @@
 # If we ever publicly expose interfaces users can import from this module,
 # we should set up its RST file.
 """Primary SQD functionality."""
+
+__all__ = ["enable_engine"]
+
+
+def __getattr__(name):
+    # Lazily expose ``qiskit_addon_sqd.enable_engine`` without importing the
+    # heavy ``fermion`` module (pyscf/jax) at ``import qiskit_addon_sqd`` time.
+    # PEP 562 module-level __getattr__.
+    if name == "enable_engine":
+        from .fermion import enable_engine
+
+        return enable_engine
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

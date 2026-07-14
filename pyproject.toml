@@ -39,6 +39,13 @@ dev = [
     "qiskit-addon-sqd[test,nbtest,lint,docs]",
     "tox>=4.4.3",
 ]
+# Optional acceleration-engine support. Enables qiskit_addon_sqd.enable_engine
+# so an external engine (e.g. SBD) can override the SQD solver. Coherix is
+# IBM-internal (not on PyPI); install from source, e.g.:
+#   pip install -e ~/IBMWORK/QCSC/coherix
+coherix = [
+    "coherix",
+]
 basetest = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
