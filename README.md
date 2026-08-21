@@ -89,14 +89,14 @@ In this package, the user controls the number of bitstrings (see the `samples_pe
 
 This package contains the functionality for the classical processing of user-provided samples. It can target Hamiltonians expressed as linear combinations of Pauli operators or second-quantized Fermionic operators. The projection and diagonalization steps are performed by a classical solver. We provide here two generic solvers, one for Fermionic systems and another for qubit systems. Other solvers that might be more efficient for specific systems can be interfaced by the users.
 
-Besides passing an alternative solver via the `sci_solver=` argument of `diagonalize_fermionic_hamiltonian`, this build exposes a [coherix](https://github.ibm.com/ibm-q-research/coherix) **acceleration domain** (experimental). `solve_sci_batch` is marked as an acceleration candidate, so an external engine package (e.g. the SBD eigensolver) can transparently replace the solver — with no `sci_solver=` threading — after a one-line activation:
+Besides passing an alternative solver via the `sci_solver=` argument of `diagonalize_fermionic_hamiltonian`, this build exposes a [coheriq](https://github.ibm.com/ibm-q-research/coherix) **acceleration domain** (experimental). `solve_sci_batch` is marked as an acceleration candidate, so an external engine package (e.g. the SBD eigensolver) can transparently replace the solver — with no `sci_solver=` threading — after a one-line activation:
 
 ```python
 import qiskit_addon_sqd
-qiskit_addon_sqd.enable_engine("sbd")   # or set SQD_ENGINE=sbd; requires coherix + the engine package
+qiskit_addon_sqd.enable_engine("sbd-cpu")   # or set SQD_ENGINE=sbd-cpu; requires coheriq + the engine package
 ```
 
-Coherix is optional: if it is not installed, `solve_sci_batch` stays an ordinary function and `enable_engine` raises a clear error. See the engine package's docs (e.g. SBD's `docs/coherix-poc.md`) for authoring an engine.
+coheriq is optional: if it is not installed, `solve_sci_batch` stays an ordinary function and `enable_engine` raises a clear error. See the engine package's docs (e.g. SBD's `docs/coheriq-poc.md`) for authoring an engine.
 
 ----------------------------------------------------------------------------------------------------
 
